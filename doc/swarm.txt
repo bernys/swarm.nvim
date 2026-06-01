@@ -1,0 +1,84 @@
+*swarm.nvim*  Multiple cursors for Neovim – Lua edition
+
+==============================================================================
+CONTENTS                                              *swarm-contents*
+
+  1. Introduction .............................. |swarm-intro|
+  2. Requirements .............................. |swarm-requirements|
+  3. Setup ..................................... |swarm-setup|
+  4. Default keymaps ........................... |swarm-keymaps|
+  5. Commands .................................. |swarm-commands|
+  6. API ....................................... |swarm-api|
+  7. Highlights ................................ |swarm-highlights|
+
+==============================================================================
+1. INTRODUCTION                                        *swarm-intro*
+
+swarm.nvim is a Lua-native multiple-cursor plugin for Neovim, inspired
+by mg979/vim-visual-multi. It uses extmarks to track virtual cursors and
+vim.on_key to replay keystrokes across all active cursors.
+
+==============================================================================
+2. REQUIREMENTS                                   *swarm-requirements*
+
+  - Neovim >= 0.9
+
+==============================================================================
+3. SETUP                                               *swarm-setup*
+
+Minimal: >lua
+  require("swarm").setup()
+<
+
+Full options: >lua
+  require("swarm").setup({
+    default_mappings   = true,          -- set false to define your own
+    highlight_cursor   = "Swarm",
+    highlight_visual   = "SwarmVisual",
+  })
+<
+
+==============================================================================
+4. DEFAULT KEYMAPS                                    *swarm-keymaps*
+
+  <C-n>       Add cursor at next occurrence of word under cursor
+  <C-p>       Remove last added cursor
+  <C-x>       Skip current match, jump to next
+  <C-Down>    Add cursor on line below
+  <C-Up>      Add cursor on line above
+  <leader>A   Select all occurrences of word under cursor
+  <C-m>       (visual) Add cursor on every selected line
+  <Esc>       Exit swarm mode
+
+==============================================================================
+5. COMMANDS                                          *swarm-commands*
+
+  :MCAddDown        Add cursor below
+  :MCAddUp          Add cursor above
+  :MCAddWord        Add cursor at next word match
+  :MCSelectAll      Select all word occurrences
+  :MCAddVisual      Add cursors for visual selection
+  :MCRemoveLast     Remove last cursor
+  :MCSkip           Skip current match
+  :MCCancel         Exit swarm mode
+
+==============================================================================
+6. API                                                  *swarm-api*
+
+  require("swarm").add_cursor(dir)    dir = "up"|"down"
+  require("swarm").add_cursor_word()
+  require("swarm").select_all_word()
+  require("swarm").add_cursors_visual()
+  require("swarm").remove_last_cursor()
+  require("swarm").skip_cursor()
+  require("swarm").run_normal(cmd)    replay normal cmd on all cursors
+  require("swarm").cancel()
+
+==============================================================================
+7. HIGHLIGHTS                                       *swarm-highlights*
+
+  Swarm        Virtual cursor block
+  SwarmVisual  Virtual selection background
+  SwarmMain    Real cursor while swarm is active
+
+vim:tw=78:ts=2:ft=help:norl:
