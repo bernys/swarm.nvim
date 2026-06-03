@@ -63,37 +63,43 @@ function M.add_cursor_word()
 
   local row, col = utils.real_cursor_pos()
 
-  -- On first call, mark the current position and jump to next match
   if not state.active then
     ensure_active()
-    -- Add cursor at current word start
-    local line    = utils.get_line(row)
-    local w_start = col
-    -- walk left to find word start
-    while w_start > 0 and line:sub(w_start, w_start):match("%w") do
-      w_start = w_start - 1
-    end
-    if not line:sub(w_start + 1, w_start + 1):match("%w") then
-      w_start = w_start + 1
-    end
+  end
+
+  -- Find the start of the current word
+  local line    = utils.get_line(row)
+  local w_start = col
+  while w_start > 0 and line:sub(w_start, w_start):match("%w") do
+    w_start = w_start - 1
+  end
+  if not line:sub(w_start + 1, w_start + 1):match("%w") then
+    w_start = w_start + 1
+  end
+
+  -- Add a virtual cursor at the current position if one doesn't exist already
+  if not state.has_cursor_at(row, w_start) then
     local c = state.new_cursor(row, w_start)
     table.insert(state.cursors, c)
   end
 
-  -- Find next occurrence after real cursor
+  -- Find the next occurrence
   local next_pos = utils.find_next_occurrence(word, row, col)
   if not next_pos then
-		vim.notify("[swarm] no more occurrences of '" .. word .. "'", vim.log.levels.WARN)
+    vim.notify("[swarm] no more occurrences of '" .. word .. "'", vim.log.levels.WARN)
     return
   end
 
-  -- Skip if already have a cursor there
+  -- If the next position already has a cursor 
   if state.has_cursor_at(next_pos.row, next_pos.col) then
-    -- Also skip the real cursor position
     next_pos = utils.find_next_occurrence(word, next_pos.row, next_pos.col)
-    if not next_pos then return end
+    -- Avoid an infinite loop if all occurrences already have a cursor
+    if not next_pos or state.has_cursor_at(next_pos.row, next_pos.col) then
+      return
+    end
   end
 
+  -- Move the real cursor to the next occurrence
   utils.set_real_cursor(next_pos.row, next_pos.col)
 end
 
