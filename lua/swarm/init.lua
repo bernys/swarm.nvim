@@ -83,7 +83,7 @@ function M.add_cursor_word()
   -- Find next occurrence after real cursor
   local next_pos = utils.find_next_occurrence(word, row, col)
   if not next_pos then
-    vim.notify("[swarm] no more occurrences of "" .. word .. """, vim.log.levels.WARN)
+		vim.notify("[swarm] no more occurrences of '" .. word .. "'", vim.log.levels.WARN)
     return
   end
 
@@ -119,7 +119,7 @@ function M.select_all_word()
   end
 
   vim.notify(
-    string.format("[swarm] %d cursors on "%s"", #all, word),
+		string.format("[swarm] %d cursors on '%s'", #all, word),
     vim.log.levels.INFO
   )
 end
@@ -141,8 +141,7 @@ function M.add_cursors_visual()
   state.clear()
   ensure_active()
 
-  for row = row1, row2 do
-    local line    = utils.get_line(row)
+  for row = row1, row2 do local line    = utils.get_line(row)
     local safe_col = math.min(col, #line > 0 and #line - 1 or 0)
     if row == row2 then
       utils.set_real_cursor(row, safe_col)

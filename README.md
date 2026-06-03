@@ -149,6 +149,11 @@ PRs welcome! Areas to improve:
 
 ---
 
+A Lua-native multiple-cursors plugin for Neovim, inspired by
+[mg979/vim-visual-multi](https://github.com/mg979/vim-visual-multi).
+
+--- 
+
 ## License
 
 MIT
