@@ -63,12 +63,8 @@ function M.add_cursor_word()
 
   local row, col = utils.real_cursor_pos()
 
-  if not state.active then
-    ensure_active()
-  end
-
   -- Find the start of the current word
-  local line    = utils.get_line(row)
+  local line = utils.get_line(row)
   local w_start = col
   while w_start > 0 and line:sub(w_start, w_start):match("%w") do
     w_start = w_start - 1
@@ -77,7 +73,19 @@ function M.add_cursor_word()
     w_start = w_start + 1
   end
 
-  -- Add a virtual cursor at the current position if one doesn't exist already
+  -- Initialize swarm mode if not active and add the first virtual cursor
+  if not state.active then
+    ensure_active()
+    utils.set_real_cursor(row, w_start)
+
+    if not state.has_cursor_at(row, w_start) then
+      local c = state.new_cursor(row, w_start)
+      table.insert(state.cursors, c)
+    end
+    return
+  end
+
+  -- Ensure the current position has a virtual cursor before jumping
   if not state.has_cursor_at(row, w_start) then
     local c = state.new_cursor(row, w_start)
     table.insert(state.cursors, c)
@@ -86,21 +94,24 @@ function M.add_cursor_word()
   -- Find the next occurrence
   local next_pos = utils.find_next_occurrence(word, row, col)
   if not next_pos then
-    vim.notify("[swarm] no more occurrences of '" .. word .. "'", vim.log.levels.WARN)
+    vim.notify("[swarm] No more occurrences of '" .. word .. "'", vim.log.levels.WARN)
     return
   end
 
-  -- If the next position already has a cursor
-  if state.has_cursor_at(next_pos.row, next_pos.col) then
+  -- Avoid infinite loops if the next position already has a virtual cursor
+  local max_attempts = 100
+  while next_pos and state.has_cursor_at(next_pos.row, next_pos.col) and max_attempts > 0 do
     next_pos = utils.find_next_occurrence(word, next_pos.row, next_pos.col)
-    -- Avoid an infinite loop if all occurrences already have a cursor
-    if not next_pos or state.has_cursor_at(next_pos.row, next_pos.col) then
-      return
-    end
+    max_attempts = max_attempts - 1
   end
 
-  -- Move the real cursor to the next occurrence
-  utils.set_real_cursor(next_pos.row, next_pos.col)
+  -- Move the real cursor to the next occurrence and add a new virtual cursor immediately
+  if next_pos and not state.has_cursor_at(next_pos.row, next_pos.col) then
+    utils.set_real_cursor(next_pos.row, next_pos.col)
+
+    local c = state.new_cursor(next_pos.row, next_pos.col)
+    table.insert(state.cursors, c)
+  end
 end
 
 ---Select ALL occurrences of the word under the cursor at once.
