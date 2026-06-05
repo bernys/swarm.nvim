@@ -2,24 +2,29 @@
 -- Intercepts keystrokes while swarm is active and replays them
 -- on every virtual cursor after executing on the real cursor.
 
-local state = require("swarm.state")
-local utils = require("swarm.utils")
-local M     = {}
+local state      = require("swarm.state")
+local utils      = require("swarm.utils")
+local M          = {}
 
 -- Keys we handle specially (not replayed verbatim as insert text)
-local SPECIAL = {
-  ["<BS>"]    = true, ["<Del>"] = true,
-  ["<Left>"]  = true, ["<Right>"] = true,
-  ["<Up>"]    = true, ["<Down>"]  = true,
-  ["<Home>"]  = true, ["<End>"]   = true,
-  ["<CR>"]    = true, ["<Esc>"]   = true,
+local SPECIAL    = {
+  ["<BS>"] = true,
+  ["<Del>"] = true,
+  ["<Left>"] = true,
+  ["<Right>"] = true,
+  ["<Up>"] = true,
+  ["<Down>"] = true,
+  ["<Home>"] = true,
+  ["<End>"] = true,
+  ["<CR>"] = true,
+  ["<Esc>"] = true,
 }
 
 -- Current insert-mode text being accumulated
 local insert_buf = ""
 
 -- Are we currently in insert mode?
-local in_insert = false
+local in_insert  = false
 
 ---Apply a single normal-mode command to all virtual cursors.
 ---Saves and restores the real cursor between each virtual cursor execution.
@@ -55,7 +60,7 @@ local function replay_insert(text)
 
   -- We insert in reverse row order so earlier extmarks are not shifted
   -- by later insertions. Sort descending.
-  local sorted = vim.deepcopy(state.cursors)
+  local sorted             = vim.deepcopy(state.cursors)
   table.sort(sorted, function(a, b)
     if a.row ~= b.row then return a.row > b.row end
     return a.col > b.col
@@ -131,7 +136,7 @@ function M.start_key_capture()
   if key_handler_id then return end
   key_handler_id = vim.on_key(function(key)
     if not state.active then return end
-    if not in_insert   then return end
+    if not in_insert then return end
 
     local decoded = vim.fn.keytrans(key)
 
@@ -165,15 +170,15 @@ end
 
 function M.stop_key_capture()
   if key_handler_id then
-    -- on_key handlers cannot be removed individually in older nvim;
-    -- we rely on the `state.active` guard instead.
+    -- Elimina el callback de Neovim usando el ID
+    vim.on_key(nil, key_handler_id)
     key_handler_id = nil
   end
 end
 
 -- Expose replay helpers for use by the main module
-M.replay_normal   = replay_normal
-M.replay_insert   = replay_insert
+M.replay_normal    = replay_normal
+M.replay_insert    = replay_insert
 M.replay_backspace = replay_backspace
 
 return M

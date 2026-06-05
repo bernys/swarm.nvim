@@ -5,7 +5,7 @@ local state     = require("swarm.state")
 local utils     = require("swarm.utils")
 local input     = require("swarm.input")
 
-local M = {}
+local M         = {}
 
 -- ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -58,7 +58,7 @@ end
 ---Add a cursor at the next occurrence of the word under the cursor.
 ---If called for the first time, places a cursor at the current word too.
 function M.add_cursor_word()
-  local word     = utils.get_cword()
+  local word = utils.get_cword()
   if word == "" then return end
 
   local row, col = utils.real_cursor_pos()
@@ -90,7 +90,7 @@ function M.add_cursor_word()
     return
   end
 
-  -- If the next position already has a cursor 
+  -- If the next position already has a cursor
   if state.has_cursor_at(next_pos.row, next_pos.col) then
     next_pos = utils.find_next_occurrence(word, next_pos.row, next_pos.col)
     -- Avoid an infinite loop if all occurrences already have a cursor
@@ -125,9 +125,18 @@ function M.select_all_word()
   end
 
   vim.notify(
-		string.format("[swarm] %d cursors on '%s'", #all, word),
+    string.format("[swarm] %d cursors on '%s'", #all, word),
     vim.log.levels.INFO
   )
+end
+
+function M.change_word()
+  if not state.active then return end
+
+  input.replay_normal("ce")
+
+  local keys = vim.api.nvim_replace_termcodes("ce", true, false, true)
+  vim.api.nvim_feedkeys(keys, "n", false)
 end
 
 ---Add a cursor at every line within the current visual selection.
@@ -135,7 +144,7 @@ function M.add_cursors_visual()
   -- Get visual selection bounds
   local v_start = vim.fn.getpos("'<")
   local v_end   = vim.fn.getpos("'>")
-  local row1    = v_start[2] - 1  -- 0-based
+  local row1    = v_start[2] - 1 -- 0-based
   local row2    = v_end[2] - 1
   local col     = v_start[3] - 1
 
@@ -147,7 +156,8 @@ function M.add_cursors_visual()
   state.clear()
   ensure_active()
 
-  for row = row1, row2 do local line    = utils.get_line(row)
+  for row = row1, row2 do
+    local line     = utils.get_line(row)
     local safe_col = math.min(col, #line > 0 and #line - 1 or 0)
     if row == row2 then
       utils.set_real_cursor(row, safe_col)
@@ -205,14 +215,14 @@ function M.setup(opts)
   highlight.setup()
 
   -- User commands
-  vim.api.nvim_create_user_command("MCAddDown",      function() M.add_cursor("down") end, {})
-  vim.api.nvim_create_user_command("MCAddUp",        function() M.add_cursor("up") end, {})
-  vim.api.nvim_create_user_command("MCAddWord",      function() M.add_cursor_word() end, {})
-  vim.api.nvim_create_user_command("MCSelectAll",    function() M.select_all_word() end, {})
-  vim.api.nvim_create_user_command("MCAddVisual",    function() M.add_cursors_visual() end, {})
-  vim.api.nvim_create_user_command("MCRemoveLast",   function() M.remove_last_cursor() end, {})
-  vim.api.nvim_create_user_command("MCSkip",         function() M.skip_cursor() end, {})
-  vim.api.nvim_create_user_command("MCCancel",       function() M.cancel() end, {})
+  vim.api.nvim_create_user_command("MCAddDown", function() M.add_cursor("down") end, {})
+  vim.api.nvim_create_user_command("MCAddUp", function() M.add_cursor("up") end, {})
+  vim.api.nvim_create_user_command("MCAddWord", function() M.add_cursor_word() end, {})
+  vim.api.nvim_create_user_command("MCSelectAll", function() M.select_all_word() end, {})
+  vim.api.nvim_create_user_command("MCAddVisual", function() M.add_cursors_visual() end, {})
+  vim.api.nvim_create_user_command("MCRemoveLast", function() M.remove_last_cursor() end, {})
+  vim.api.nvim_create_user_command("MCSkip", function() M.skip_cursor() end, {})
+  vim.api.nvim_create_user_command("MCCancel", function() M.cancel() end, {})
 end
 
 return M
