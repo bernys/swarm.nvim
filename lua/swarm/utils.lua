@@ -52,7 +52,7 @@ end
 ---@param bufnr? integer
 ---@return { row: integer, col: integer }[]
 function M.find_all_occurrences(word, bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  bufnr         = bufnr or vim.api.nvim_get_current_buf()
   local lines   = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local pattern = M.lua_escape(word)
   local results = {}
@@ -62,8 +62,8 @@ function M.find_all_occurrences(word, bufnr)
       local s, e = line:find(pattern, col, false)
       if not s then break end
       -- Make sure this is a whole-word match
-      local before = s > 1           and line:sub(s - 1, s - 1) or " "
-      local after  = e < #line       and line:sub(e + 1, e + 1) or " "
+      local before = s > 1 and line:sub(s - 1, s - 1) or " "
+      local after  = e < #line and line:sub(e + 1, e + 1) or " "
       local wb     = not before:match("%w")
       local we     = not after:match("%w")
       if wb and we then
@@ -97,6 +97,29 @@ function M.find_next_occurrence(word, from_row, from_col, bufnr)
   return all[1]
 end
 
+---Find the *previous* occurrence of `word` starting before (from_row, from_col).
+---Wraps around the buffer.
+---@param word     string
+---@param from_row integer 0-based
+---@param from_col integer 0-based
+---@param bufnr?   integer
+---@return { row: integer, col: integer }|nil
+function M.find_prev_occurrence(word, from_row, from_col, bufnr)
+  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  local all = M.find_all_occurrences(word, bufnr)
+  if #all == 0 then return nil end
+
+  -- Find first occurrence before cursor (iterate backwards)
+  for i = #all, 1, -1 do
+    local pos = all[i]
+    if pos.row < from_row or (pos.row == from_row and pos.col < from_col) then
+      return pos
+    end
+  end
+  -- Wrap: return the very last
+  return all[#all]
+end
+
 ---Replay a normal-mode command string on the real cursor.
 ---This is used to mirror keystrokes to virtual cursors.
 ---@param cmd string
@@ -111,7 +134,7 @@ end
 ---@param text   string
 ---@return integer new_col
 function M.insert_at(bufnr, row, col, text)
-  local line    = M.get_line(row, bufnr)
+  local line     = M.get_line(row, bufnr)
   local new_line = line:sub(1, col) .. text .. line:sub(col + 1)
   vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, { new_line })
   return col + #text

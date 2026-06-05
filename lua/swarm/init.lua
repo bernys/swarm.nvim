@@ -10,23 +10,31 @@ local M         = {}
 -- ─── Internal helpers ─────────────────────────────────────────────────────────
 
 ---Activate swarm mode if not already active.
+---Activate swarm mode if not already active.
 local function ensure_active()
   if not state.active then
     state.active = true
     state.bufnr  = vim.api.nvim_get_current_buf()
     input.attach()
     input.start_key_capture()
-    -- Highlight the real cursor distinctly
     vim.api.nvim_set_hl(0, "Cursor", { link = "SwarmMain" })
+
+    -- Register buffer-local mappings for 'n' and 'N'
+    vim.keymap.set("n", "n", function() M.add_cursor_word() end, { buffer = state.bufnr, noremap = true })
+    vim.keymap.set("n", "N", function() M.add_cursor_word_prev() end, { buffer = state.bufnr, noremap = true })
+
     vim.notify("[swarm] active – Esc to exit", vim.log.levels.INFO, { title = "swarm.nvim" })
   end
 end
 
 ---Deactivate swarm mode.
 local function deactivate()
+  -- Remove buffer-local mappings
+  pcall(vim.keymap.del, "n", "n", { buffer = state.bufnr })
+  pcall(vim.keymap.del, "n", "N", { buffer = state.bufnr })
+
   state.clear()
   input.stop_key_capture()
-  -- Restore normal Cursor highlight
   vim.api.nvim_set_hl(0, "Cursor", {})
   vim.notify("[swarm] exited", vim.log.levels.INFO, { title = "swarm.nvim" })
 end
@@ -110,6 +118,58 @@ function M.add_cursor_word()
     utils.set_real_cursor(next_pos.row, next_pos.col)
 
     local c = state.new_cursor(next_pos.row, next_pos.col)
+    table.insert(state.cursors, c)
+  end
+end
+
+---Add a cursor at the previous occurrence of the word under the cursor.
+function M.add_cursor_word_prev()
+  local word = utils.get_cword()
+  if word == "" then return end
+
+  local row, col = utils.real_cursor_pos()
+
+  local line = utils.get_line(row)
+  local w_start = col
+  while w_start > 0 and line:sub(w_start, w_start):match("%w") do
+    w_start = w_start - 1
+  end
+  if not line:sub(w_start + 1, w_start + 1):match("%w") then
+    w_start = w_start + 1
+  end
+
+  if not state.active then
+    ensure_active()
+    utils.set_real_cursor(row, w_start)
+    if not state.has_cursor_at(row, w_start) then
+      local c = state.new_cursor(row, w_start)
+      table.insert(state.cursors, c)
+    end
+    return
+  end
+
+  if not state.has_cursor_at(row, w_start) then
+    local c = state.new_cursor(row, w_start)
+    table.insert(state.cursors, c)
+  end
+
+  -- Find the previous occurrence
+  local prev_pos = utils.find_prev_occurrence(word, row, col)
+  if not prev_pos then
+    vim.notify("[swarm] No more occurrences of '" .. word .. "'", vim.log.levels.WARN)
+    return
+  end
+
+  local max_attempts = 100
+  while prev_pos and state.has_cursor_at(prev_pos.row, prev_pos.col) and max_attempts > 0 do
+    prev_pos = utils.find_prev_occurrence(word, prev_pos.row, prev_pos.col)
+    max_attempts = max_attempts - 1
+  end
+
+  if prev_pos and not state.has_cursor_at(prev_pos.row, prev_pos.col) then
+    utils.set_real_cursor(prev_pos.row, prev_pos.col)
+
+    local c = state.new_cursor(prev_pos.row, prev_pos.col)
     table.insert(state.cursors, c)
   end
 end
